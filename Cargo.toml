@@ -1,32 +1,8 @@
-[package]
-name = "pasm"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-path = "src/lib.rs"
-
-# [workspace]
-# members = ["src"]
-
-[dependencies]
-serde = {version = "1.0.228", features = ["derive"]}
-serde_json = "1.0.149"
-axum = {version = "0.8.8", features = ["tokio", "http1"]}
-tokio = {version = "1.49.0", features = ["full"]}
-magic-crypt = "3.1.6"
-colored = "2.0"
-sha2 = "0.9.9"
-dotenv = "0.15.0"
-async-trait = "0.1"
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }
-toml = "0.8"
-
-
-[[bin]]
-name = "pasm_server"
-path = "src/bin/pasm_server.rs"
-
-[[bin]]
-name = "pasm_client"
-path = "src/bin/pasm_client.rs"
+[workspace]
+resolver = "2"
+members = [
+    "pasm-core",
+    "pasm-server",
+    "pasm-cli",
+    "pasm-wasm",
+]

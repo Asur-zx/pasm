@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pasm</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ── Login ── -->
+<div id="login-screen" class="card card-narrow">
+    <h1>pasm</h1>
+    <div class="subtitle">Master password</div>
+
+    <div class="field">
+        <label for="server-input">Server</label>
+        <input id="server-input" type="text" value="http://localhost:3000" placeholder="http://localhost:3000">
+    </div>
+
+    <div class="field">
+        <label for="password-input">Master password</label>
+        <input id="password-input" type="password" placeholder="Enter master password" autofocus>
+    </div>
+
+    <button id="login-btn" class="btn btn-primary btn-block">Unlock</button>
+</div>
+
+<!-- ── App ── -->
+<div id="app-screen" class="card card-wide hidden">
+    <div class="header-bar">
+        <h1>pasm</h1>
+        <button id="logout-btn" class="btn btn-sm btn-secondary">Logout</button>
+    </div>
+
+    <div id="msg" class="msg hidden"></div>
+
+    <!-- entries -->
+    <ul id="entry-list" class="entry-list"></ul>
+
+    <!-- create form -->
+    <h2 style="font-size:16px;font-weight:500;margin-top:28px;margin-bottom:12px;color:var(--text-secondary);">New entry</h2>
+    <div class="field">
+        <label for="create-name">Name</label>
+        <input id="create-name" type="text" placeholder="e.g. github">
+    </div>
+    <div class="field">
+        <label for="create-site">Site</label>
+        <input id="create-site" type="text" placeholder="github.com">
+    </div>
+    <div class="field">
+        <label for="create-uname">Username</label>
+        <input id="create-uname" type="text" placeholder="user@example.com">
+    </div>
+    <div class="field">
+        <label for="create-pword">Password</label>
+        <input id="create-pword" type="text" placeholder="••••••••">
+    </div>
+    <div class="field">
+        <label for="create-note">Note</label>
+        <textarea id="create-note" placeholder="Optional notes"></textarea>
+    </div>
+    <button id="create-btn" class="btn btn-primary btn-block">Save</button>
+</div>
+
+<!-- ── Detail ── -->
+<div id="detail-screen" class="card card-wide hidden">
+    <div class="back-row">
+        <button id="back-to-app" class="btn btn-sm btn-secondary">&larr; Back</button>
+        <h1>Entry</h1>
+    </div>
+    <div id="detail-content"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

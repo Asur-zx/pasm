@@ -1,11 +1,15 @@
 # pasm
 
-A password manager with a Rust CLI client and REST API backend.
+A password manager. Encrypt entries client-side with AES-256, sync them to a PostgreSQL-backed server, and decrypt them anywhere — terminal or browser.
 
-- **Client** — CLI tool with master-password login, AES-256 encryption, Bearer token auth
-- **Server** — Axum REST API, PostgreSQL, per-user auth key registration
+The project is split into four crates:
 
----
+| Crate | What it does |
+|---|---|
+| `pasm-core` | Shared types and crypto — encrypt, decrypt, key derivation |
+| `pasm-server` | Axum REST API with PostgreSQL and Bearer-token auth |
+| `pasm-cli` | Terminal client — master password, curl-based HTTP, coloured output |
+| `pasm-wasm` | WASM bindings — `encrypt_entry`, `decrypt_entry`, `derive_api_key` |
 
 ## Quick start
 
@@ -13,7 +17,7 @@ A password manager with a Rust CLI client and REST API backend.
 # Start PostgreSQL + server
 docker compose up -d
 
-# Install the client
+# Build the client
 cargo build --bin pasm_client
 ./target/debug/pasm_client --help
 ```
@@ -21,28 +25,18 @@ cargo build --bin pasm_client
 Or run without Docker:
 
 ```bash
-# Ensure PostgreSQL is running and set PASM_DATABASE_URL
 export PASM_DATABASE_URL="postgres://user:pass@localhost/pasm"
 
-# Start the server
-cargo run --bin pasm_server
-
-# First-time login (creates master password + registers key)
-cargo run --bin pasm_client login
-
-# Use it
-cargo run --bin pasm_client create
-cargo run --bin pasm_client list
-cargo run --bin pasm_client find github
+cargo run --bin pasm_server           # Start server
+cargo run --bin pasm_client login     # First-time login
+cargo run --bin pasm_client create    # Create an entry
+cargo run --bin pasm_client list      # List entries
 ```
-
----
 
 ## Client CLI
 
 ```
 Usage: pasm_client [options] <command> [args]
-       pasm_client -h | --help
 
 Global options:
   --config <path>     Config file path (default: ~/.config/pasm/config.toml)
@@ -60,13 +54,13 @@ Entry management (requires login):
   amend              Create or overwrite an entry (interactive)
 
 Account management (requires login):
+  backup             Backup all encrypted entries to a JSON file
+  set-admin <key>    Promote a user to admin (admin only)
   register           Register current auth key with server
   update-auth <key>  Replace auth key (key rotation)
   remove-auth        Remove user and all data
   list-users         List all registered users
 ```
-
----
 
 ## Server
 
@@ -99,34 +93,31 @@ max_connections = 5
 
 Env vars and CLI flags override config file values.
 
----
-
 ## Docker Compose
 
 ```bash
 docker compose up -d
 ```
 
-Starts PostgreSQL 17 and pasm server on port 3000. Connection string is
-auto-configured for the Compose network.
-
----
+Starts PostgreSQL 17 and pasm server on port 3000.
 
 ## API
 
-All endpoints except `POST /auth` require `Authorization: Bearer <api_key>`.
+All endpoints except `POST /auth` and `GET /health` require `Authorization: Bearer <api_key>`.
 
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
 | `POST` | `/auth` | None | Register a new auth key |
-| `GET` | `/auth/list` | Bearer | List all registered auth keys |
-| `POST` | `/auth/update` | Bearer | Replace auth key (key rotation) |
-| `DELETE` | `/auth/remove` | Bearer | Remove user and all entries |
+| `POST` | `/auth/update` | Admin | Replace auth key (key rotation) |
+| `DELETE` | `/auth/remove` | Admin | Remove user and all entries |
+| `GET` | `/auth/list` | Admin | List all registered auth keys |
+| `POST` | `/auth/set-admin` | Admin | Promote a user to admin |
 | `GET` | `/entries` | Bearer | List all entries |
 | `POST` | `/entry` | Bearer | Create an entry (no overwrite) |
 | `POST` | `/entry/amend` | Bearer | Create or overwrite an entry |
 | `GET` | `/entry/{name}` | Bearer | Find entry by name |
 | `DELETE` | `/entry/{name}` | Bearer | Delete entry by name |
+| `GET` | `/backup` | Bearer | Create server-side backup |
 | `GET` | `/health` | None | Health check |
 
 ```bash
@@ -140,13 +131,22 @@ curl -X POST -H "Authorization: Bearer $KEY" \
   http://localhost:3000/entry
 ```
 
----
+## WASM
+
+Build the WASM module for browser use:
+
+```bash
+wasm-pack build pasm-wasm --target web
+```
+
+Exported functions: `encrypt_entry`, `decrypt_entry`, `derive_api_key`, `derive_encr_key`.
 
 ## Security notes
 
 - **Key derivation**: Two-step SHA-256: `auth_key = SHA-256("pasm-auth" + password)`, then `api_key = SHA-256(auth_key)`. The intermediate `auth_key` is never sent over the wire.
 - **Entry encryption**: AES-256 client-side before upload. Server only sees ciphertext.
 - **Session file**: Stored at `~/.config/pasm/session` with `0600` permissions.
+- **Admin bootstrap**: First server start creates an admin user (password: `admin`). Change immediately.
 
 ### Not implemented / future
 - TLS

@@ -4,6 +4,41 @@ Completed features and improvements in pasm, organized by area.
 
 ---
 
+## Workspace Restructure
+
+- **Crate split into workspace** — Monolithic `src/` replaced with
+  `pasm-core`, `pasm-server`, `pasm-cli`, `pasm-wasm`.
+- **Shared `pasm-core`** — Types (`detail`, `entry`, `error`) and utils
+  (`encrypt`, `decrypt`, `serialize`, `deserialize`, `crypto`, `config`)
+  shared by all consumers. `error.rs` feature-gates `IntoResponse` behind
+  `server` feature; `config` behind `native` feature.
+- **Key derivation extracted** — `derive_api_key`, `derive_key`, `hash_key`
+  moved to `pasm_core::utils::crypto`, removing the duplicated copies in
+  `master.rs` and `server/mod.rs`.
+- **`pasm-wasm` crate** — `#[wasm_bindgen]` stub exposing
+  `encrypt_entry`, `decrypt_entry`, `derive_api_key`, `derive_encr_key`.
+  Build with `wasm-pack build pasm-wasm --target web`.
+
+---
+
+## Admin Role System
+
+- **`002_admin_role.sql` migration** — Adds `roles TEXT[] DEFAULT ARRAY['user']`
+  column to `users` table. Idempotent (`ADD COLUMN IF NOT EXISTS`).
+- **`AuthInfo` struct** — `{ token, roles }` injected into request extensions
+  by the auth middleware.
+- **`admin_auth` middleware** — Reads `AuthInfo` from extensions, returns
+  `403` if `"admin"` not in roles. Zero extra DB queries (roles already
+  fetched by auth middleware).
+- **Route split** — `auth/update`, `auth/remove`, `auth/list`, `auth/set-admin`
+  require both auth + admin middleware. Entry routes require auth only.
+- **Bootstrap admin** — Server creates `admin` user (`['user','admin']` roles,
+  password `admin`) on first start via `ON CONFLICT DO NOTHING`.
+- **Client `set-admin` command** — `pasm_client set-admin <key>` calls
+  `POST /auth/set-admin`.
+
+---
+
 ## Foundation & Configuration
 
 - **Health endpoint** — `GET /health` returns `status`, `version`,
@@ -48,14 +83,13 @@ Completed features and improvements in pasm, organized by area.
   `entries` tables, UUID primary keys, `ON DELETE CASCADE`, unique
   constraint on `(user_id, entry_name)`.
 
-- **`Db` trait** — 13 async methods in `types/db.rs`, object-safe via
+- **`Db` trait** — 15 async methods in `types/db.rs`, object-safe via
   `#[async_trait]`, backed by `PgDb` or mockable for tests.
 
 - **`PgDb` implementation** — All queries use `sqlx::query` with `$N`
   positional binds. Pool configured on server startup.
 
-- **Dependencies pruned** — `sled` and `uuid` crates removed from
-  `Cargo.toml`.
+- **Dependencies pruned** — `sled` and `uuid` crates removed.
 
 ---
 
